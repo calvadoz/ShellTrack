@@ -30,6 +30,7 @@
 
 ### Corrected
 
+- Made the weight chart fit its card without horizontal scrolling, kept edge date labels visible, reduced marker clutter, and added a full-size touch and keyboard explorer for dense histories.
 - Aligned Add Measurement with the approved Add Pet mobile modal: the same header, 20px gutters, field sizing, optional labels, plain form rhythm, and Cancel or Save actions, with shell dimensions compactly collapsed until needed.
 - Constrained native date inputs to their mobile form column and left-aligned the value in iOS browsers without replacing the system picker.
 

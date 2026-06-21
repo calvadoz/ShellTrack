@@ -64,7 +64,7 @@ export type Messages = {
     chartDateAxis: string;
     chartWeightAxisGram: string;
     chartWeightAxisKilogram: string;
-    chartScrollHint: string;
+    chartExploreHint: string;
   };
   measurement: {
     newHeading: string;

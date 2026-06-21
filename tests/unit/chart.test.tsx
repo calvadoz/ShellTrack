@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { WeightChart } from "@/components/app/shelltrack-app";
@@ -35,16 +35,25 @@ const measurements: Measurement[] = [
 ];
 
 describe("WeightChart", () => {
-  it("renders axes, a legend, and one accessible point per record", () => {
+  it("renders axes, a legend, and one accessible chart explorer", () => {
     render(<WeightChart measurements={measurements} />);
 
-    expect(screen.getByRole("img", { name: messages.pet.chart })).toBeVisible();
+    expect(
+      screen.getByRole("group", { name: messages.pet.chart }),
+    ).toBeVisible();
     expect(screen.getByText(messages.pet.chartLegendRecorded)).toBeVisible();
     expect(screen.getByText(messages.pet.chartLegendDrop)).toBeVisible();
     expect(screen.getByText(messages.pet.chartDateAxis)).toBeVisible();
     expect(
       screen.getByText(messages.pet.chartWeightAxisKilogram),
     ).toBeVisible();
-    expect(screen.getAllByRole("button")).toHaveLength(3);
+    const explorer = screen.getByRole("slider", {
+      name: messages.pet.chartExploreHint,
+    });
+    expect(explorer).toHaveAttribute("aria-valuemax", "3");
+    expect(explorer).toHaveAttribute("aria-valuenow", "3");
+
+    fireEvent.keyDown(explorer, { key: "ArrowLeft" });
+    expect(explorer).toHaveAttribute("aria-valuenow", "2");
   });
 });

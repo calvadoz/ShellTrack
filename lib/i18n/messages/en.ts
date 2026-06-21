@@ -84,7 +84,8 @@ export const en: Messages = {
     chartDateAxis: "Measurement date",
     chartWeightAxisGram: "Weight in grams",
     chartWeightAxisKilogram: "Weight in kilograms",
-    chartScrollHint: "Swipe or scroll to explore earlier records.",
+    chartExploreHint:
+      "Move, tap, or use the arrow keys to explore each record.",
   },
   measurement: {
     newHeading: "Add measurement",

@@ -5,6 +5,8 @@ import {
   useRef,
   useState,
   type FormEvent,
+  type KeyboardEvent,
+  type PointerEvent,
   type ReactNode,
 } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -572,22 +574,42 @@ function niceWeightTicks(values: number[], targetTickCount = 4): number[] {
 }
 
 export function WeightChart({ measurements }: { measurements: Measurement[] }) {
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
-  const scrollArea = useRef<HTMLDivElement>(null);
+  const [activeIndex, setActiveIndex] = useState(
+    Math.max(measurements.length - 1, 0),
+  );
+  const [containerWidth, setContainerWidth] = useState(680);
+  const chartContainer = useRef<HTMLDivElement>(null);
+  const chartSvg = useRef<SVGSVGElement>(null);
   const ordered = [...measurements].sort((a, b) =>
     a.measuredAt.localeCompare(b.measuredAt),
   );
 
   useEffect(() => {
-    const area = scrollArea.current;
-    if (area) area.scrollLeft = area.scrollWidth - area.clientWidth;
+    const container = chartContainer.current;
+    if (!container) return;
+
+    const updateWidth = () => setContainerWidth(container.clientWidth);
+    updateWidth();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    setActiveIndex(Math.max(measurements.length - 1, 0));
   }, [measurements.length]);
 
   if (ordered.length < 2) return null;
 
-  const chartWidth = Math.max(680, ordered.length * 11);
+  const chartWidth = Math.max(containerWidth, 320);
   const chartHeight = 320;
-  const margin = { top: 24, right: 28, bottom: 62, left: 76 };
+  const margin = {
+    top: 24,
+    right: chartWidth < 480 ? 16 : 28,
+    bottom: 62,
+    left: chartWidth < 480 ? 58 : 76,
+  };
   const plotWidth = chartWidth - margin.left - margin.right;
   const plotHeight = chartHeight - margin.top - margin.bottom;
   const weights = ordered.map((item) => item.weightGram);
@@ -625,7 +647,7 @@ export function WeightChart({ measurements }: { measurements: Measurement[] }) {
     .join(" ");
   const baseline = margin.top + plotHeight;
   const areaPath = `${linePath} L ${points[points.length - 1].x} ${baseline} L ${points[0].x} ${baseline} Z`;
-  const labelCount = 5;
+  const labelCount = chartWidth < 480 ? 3 : 5;
   const dateLabelIndexes = Array.from(
     new Set(
       Array.from({ length: labelCount }, (_, index) =>
@@ -633,7 +655,16 @@ export function WeightChart({ measurements }: { measurements: Measurement[] }) {
       ),
     ),
   );
-  const activePoint = activeIndex === null ? undefined : points[activeIndex];
+  const markerCount = chartWidth < 480 ? 7 : 12;
+  const markerIndexes = new Set(
+    Array.from({ length: markerCount }, (_, index) =>
+      Math.round((index * (ordered.length - 1)) / (markerCount - 1)),
+    ),
+  );
+  points.forEach((point, index) => {
+    if (point.significantDrop) markerIndexes.add(index);
+  });
+  const activePoint = points[activeIndex];
   const tooltipWidth = 142;
   const tooltipHeight = activePoint?.significantDrop ? 62 : 48;
   const tooltipX = activePoint
@@ -647,6 +678,48 @@ export function WeightChart({ measurements }: { measurements: Measurement[] }) {
       ? activePoint.y - tooltipHeight - 12
       : activePoint.y + 12
     : 0;
+
+  function selectNearestRecord(clientX: number) {
+    const svg = chartSvg.current;
+    if (!svg) return;
+    const bounds = svg.getBoundingClientRect();
+    const svgX = ((clientX - bounds.left) / bounds.width) * chartWidth;
+    const targetX = Math.min(
+      chartWidth - margin.right,
+      Math.max(margin.left, svgX),
+    );
+    let nearestIndex = 0;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+    points.forEach((point, index) => {
+      const distance = Math.abs(point.x - targetX);
+      if (distance < nearestDistance) {
+        nearestIndex = index;
+        nearestDistance = distance;
+      }
+    });
+    setActiveIndex(nearestIndex);
+  }
+
+  function handleChartPointer(event: PointerEvent<SVGRectElement>) {
+    selectNearestRecord(event.clientX);
+  }
+
+  function handleChartKeyDown(event: KeyboardEvent<SVGRectElement>) {
+    let nextIndex = activeIndex;
+    if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
+      nextIndex = Math.max(0, activeIndex - 1);
+    } else if (event.key === "ArrowRight" || event.key === "ArrowUp") {
+      nextIndex = Math.min(points.length - 1, activeIndex + 1);
+    } else if (event.key === "Home") {
+      nextIndex = 0;
+    } else if (event.key === "End") {
+      nextIndex = points.length - 1;
+    } else {
+      return;
+    }
+    event.preventDefault();
+    setActiveIndex(nextIndex);
+  }
 
   return (
     <section className="overflow-hidden rounded-lg border bg-card shadow-ambient">
@@ -671,194 +744,221 @@ export function WeightChart({ measurements }: { measurements: Measurement[] }) {
             </span>
           </div>
         </div>
-        <p className="mt-4 text-xs text-muted-foreground sm:hidden">
-          {messages.pet.chartScrollHint}
+        <p className="mt-4 text-xs text-muted-foreground">
+          {messages.pet.chartExploreHint}
         </p>
       </div>
 
-      <div className="relative border-t bg-gradient-to-b from-muted/25 to-card">
-        <div
-          aria-label={messages.pet.chartScrollHint}
-          className="overflow-x-auto overscroll-x-contain"
-          ref={scrollArea}
-          tabIndex={0}
+      <div
+        className="relative min-w-0 border-t bg-gradient-to-b from-muted/25 to-card"
+        ref={chartContainer}
+      >
+        <svg
+          aria-label={messages.pet.chart}
+          className="block h-80 w-full touch-none select-none"
+          ref={chartSvg}
+          role="group"
+          viewBox={`0 0 ${chartWidth} ${chartHeight}`}
         >
-          <svg
-            aria-label={messages.pet.chart}
-            className="block h-80"
-            role="img"
-            style={{ width: `${chartWidth}px` }}
-            viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-          >
-            <defs>
-              <linearGradient id="weightArea" x1="0" x2="0" y1="0" y2="1">
-                <stop
-                  offset="0%"
-                  stopColor="hsl(var(--secondary))"
-                  stopOpacity="0.22"
-                />
-                <stop
-                  offset="100%"
-                  stopColor="hsl(var(--secondary))"
-                  stopOpacity="0.02"
-                />
-              </linearGradient>
-            </defs>
+          <defs>
+            <linearGradient id="weightArea" x1="0" x2="0" y1="0" y2="1">
+              <stop
+                offset="0%"
+                stopColor="hsl(var(--secondary))"
+                stopOpacity="0.22"
+              />
+              <stop
+                offset="100%"
+                stopColor="hsl(var(--secondary))"
+                stopOpacity="0.02"
+              />
+            </linearGradient>
+          </defs>
 
-            {yTicks.map((tick) => {
-              const y =
-                margin.top + (1 - (tick - yMinimum) / yRange) * plotHeight;
-              return (
+          {yTicks.map((tick) => {
+            const y =
+              margin.top + (1 - (tick - yMinimum) / yRange) * plotHeight;
+            return (
+              <line
+                className="stroke-border/70"
+                key={tick}
+                strokeDasharray="3 5"
+                x1={margin.left}
+                x2={chartWidth - margin.right}
+                y1={y}
+                y2={y}
+              />
+            );
+          })}
+
+          {dateLabelIndexes.map((index) => {
+            const point = points[index];
+            return (
+              <g key={point.measurement.id}>
                 <line
-                  className="stroke-border/70"
-                  key={tick}
-                  strokeDasharray="3 5"
-                  x1={margin.left}
-                  x2={chartWidth - margin.right}
-                  y1={y}
-                  y2={y}
-                />
-              );
-            })}
-
-            {dateLabelIndexes.map((index) => {
-              const point = points[index];
-              return (
-                <g key={point.measurement.id}>
-                  <line
-                    className="stroke-border/50"
-                    x1={point.x}
-                    x2={point.x}
-                    y1={baseline}
-                    y2={baseline + 5}
-                  />
-                  <text
-                    className="fill-muted-foreground text-[11px]"
-                    textAnchor="middle"
-                    x={point.x}
-                    y={baseline + 23}
-                  >
-                    {formatChartDate(point.measurement.measuredAt)}
-                  </text>
-                </g>
-              );
-            })}
-
-            <text
-              className="fill-muted-foreground text-[11px] font-semibold"
-              textAnchor="middle"
-              x={margin.left + plotWidth / 2}
-              y={chartHeight - 8}
-            >
-              {messages.pet.chartDateAxis}
-            </text>
-            <path className="chart-area" d={areaPath} fill="url(#weightArea)" />
-            <path
-              className="chart-line fill-none stroke-primary"
-              d={linePath}
-              pathLength="1"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2.5"
-            />
-
-            {points.map((point, index) => {
-              if (!point.significantDrop || index === 0) return null;
-              const previous = points[index - 1];
-              return (
-                <line
-                  className="chart-line stroke-red-700"
-                  key={`drop-${point.measurement.id}`}
-                  pathLength="1"
-                  strokeLinecap="round"
-                  strokeWidth="3.5"
-                  x1={previous.x}
+                  className="stroke-border/50"
+                  x1={point.x}
                   x2={point.x}
-                  y1={previous.y}
-                  y2={point.y}
+                  y1={baseline}
+                  y2={baseline + 5}
                 />
-              );
-            })}
+                <text
+                  className="fill-muted-foreground text-[11px]"
+                  textAnchor={
+                    index === 0
+                      ? "start"
+                      : index === ordered.length - 1
+                        ? "end"
+                        : "middle"
+                  }
+                  x={point.x}
+                  y={baseline + 23}
+                >
+                  {formatChartDate(point.measurement.measuredAt)}
+                </text>
+              </g>
+            );
+          })}
 
-            {points.map((point, index) => (
+          <text
+            className="fill-muted-foreground text-[11px] font-semibold"
+            textAnchor="middle"
+            x={margin.left + plotWidth / 2}
+            y={chartHeight - 8}
+          >
+            {messages.pet.chartDateAxis}
+          </text>
+          <path className="chart-area" d={areaPath} fill="url(#weightArea)" />
+          <path
+            className="chart-line fill-none stroke-primary"
+            d={linePath}
+            pathLength="1"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2.5"
+          />
+
+          {points.map((point, index) => {
+            if (!point.significantDrop || index === 0) return null;
+            const previous = points[index - 1];
+            return (
+              <line
+                className="chart-line stroke-red-700"
+                key={`drop-${point.measurement.id}`}
+                pathLength="1"
+                strokeLinecap="round"
+                strokeWidth="3.5"
+                x1={previous.x}
+                x2={point.x}
+                y1={previous.y}
+                y2={point.y}
+              />
+            );
+          })}
+
+          {points.map((point, index) =>
+            markerIndexes.has(index) ? (
               <circle
-                aria-label={[
-                  formatCalendarDate(point.measurement.measuredAt),
-                  formatWeight(point.measurement.weightGram, "g"),
-                  point.significantDrop ? messages.pet.chartLegendDrop : null,
-                ]
-                  .filter(Boolean)
-                  .join(", ")}
+                aria-hidden="true"
                 className={cn(
-                  "chart-point cursor-pointer stroke-card stroke-2 outline-none focus:stroke-[4]",
+                  "chart-point pointer-events-none stroke-card stroke-2",
                   point.significantDrop ? "fill-red-700" : "fill-primary",
                 )}
                 cx={point.x}
                 cy={point.y}
                 key={point.measurement.id}
-                onBlur={() => setActiveIndex(null)}
-                onFocus={() => setActiveIndex(index)}
-                onPointerDown={() => setActiveIndex(index)}
-                onPointerEnter={() => setActiveIndex(index)}
-                onPointerLeave={() => setActiveIndex(null)}
                 r={point.significantDrop ? 4.5 : 3.5}
-                role="button"
-                tabIndex={0}
-              >
-                <title>{`${formatCalendarDate(point.measurement.measuredAt)}: ${formatWeight(point.measurement.weightGram, "g")}`}</title>
-              </circle>
-            ))}
+              />
+            ) : null,
+          )}
 
-            {activePoint ? (
-              <g
-                className="pointer-events-none"
-                transform={`translate(${tooltipX} ${tooltipY})`}
+          <rect
+            aria-label={messages.pet.chartExploreHint}
+            aria-valuemax={points.length}
+            aria-valuemin={1}
+            aria-valuenow={activeIndex + 1}
+            aria-valuetext={`${formatCalendarDate(activePoint.measurement.measuredAt)}, ${formatWeight(activePoint.measurement.weightGram, "g")}`}
+            className="cursor-crosshair fill-transparent outline-none focus:stroke-primary/35"
+            height={plotHeight}
+            onKeyDown={handleChartKeyDown}
+            onPointerDown={handleChartPointer}
+            onPointerMove={handleChartPointer}
+            role="slider"
+            tabIndex={0}
+            width={plotWidth}
+            x={margin.left}
+            y={margin.top}
+          />
+
+          <line
+            aria-hidden="true"
+            className="pointer-events-none stroke-secondary/45"
+            strokeDasharray="3 4"
+            x1={activePoint.x}
+            x2={activePoint.x}
+            y1={margin.top}
+            y2={baseline}
+          />
+          <circle
+            aria-hidden="true"
+            className={cn(
+              "pointer-events-none stroke-card stroke-[3]",
+              activePoint.significantDrop ? "fill-red-700" : "fill-primary",
+            )}
+            cx={activePoint.x}
+            cy={activePoint.y}
+            r="6"
+          />
+
+          {activePoint ? (
+            <g
+              className="pointer-events-none"
+              transform={`translate(${tooltipX} ${tooltipY})`}
+            >
+              <rect
+                fill="hsl(var(--primary))"
+                height={tooltipHeight}
+                rx="8"
+                width={tooltipWidth}
+              />
+              <text
+                fill="hsl(var(--primary-foreground))"
+                fontSize="11"
+                x="12"
+                y="19"
               >
-                <rect
-                  fill="hsl(var(--primary))"
-                  height={tooltipHeight}
-                  rx="8"
-                  width={tooltipWidth}
-                />
+                {formatCalendarDate(activePoint.measurement.measuredAt)}
+              </text>
+              <text
+                fill="hsl(var(--primary-foreground))"
+                fontSize="13"
+                fontWeight="700"
+                x="12"
+                y="38"
+              >
+                {formatWeight(activePoint.measurement.weightGram, "g")}
+              </text>
+              {activePoint.significantDrop ? (
                 <text
-                  fill="hsl(var(--primary-foreground))"
+                  fill="#fecaca"
                   fontSize="11"
+                  fontWeight="600"
                   x="12"
-                  y="19"
+                  y="54"
                 >
-                  {formatCalendarDate(activePoint.measurement.measuredAt)}
+                  {formatNumber(activePoint.changePercent, {
+                    maximumFractionDigits: 1,
+                  })}
+                  %
                 </text>
-                <text
-                  fill="hsl(var(--primary-foreground))"
-                  fontSize="13"
-                  fontWeight="700"
-                  x="12"
-                  y="38"
-                >
-                  {formatWeight(activePoint.measurement.weightGram, "g")}
-                </text>
-                {activePoint.significantDrop ? (
-                  <text
-                    fill="#fecaca"
-                    fontSize="11"
-                    fontWeight="600"
-                    x="12"
-                    y="54"
-                  >
-                    {formatNumber(activePoint.changePercent, {
-                      maximumFractionDigits: 1,
-                    })}
-                    %
-                  </text>
-                ) : null}
-              </g>
-            ) : null}
-          </svg>
-        </div>
+              ) : null}
+            </g>
+          ) : null}
+        </svg>
         <svg
           aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0 left-0 z-10 h-80 w-[76px] bg-card/95 shadow-[8px_0_16px_rgba(27,48,34,0.04)]"
-          viewBox={`0 0 ${margin.left} ${chartHeight}`}
+          className="pointer-events-none absolute inset-0 h-80 w-full"
+          viewBox={`0 0 ${chartWidth} ${chartHeight}`}
         >
           {yTicks.map((tick) => {
             const y =
@@ -868,7 +968,7 @@ export function WeightChart({ measurements }: { measurements: Measurement[] }) {
                 className="fill-muted-foreground text-[11px]"
                 key={tick}
                 textAnchor="end"
-                x={margin.left - 12}
+                x={margin.left - 10}
                 y={y + 4}
               >
                 {formatWeight(tick, weightUnit)}
