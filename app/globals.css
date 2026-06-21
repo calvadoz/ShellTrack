@@ -58,6 +58,33 @@
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='84' viewBox='0 0 96 84'%3E%3Cpath d='M24 1 47 14v27L24 54 1 41V14L24 1Zm48 29 23 13v27L72 83 49 70V43l23-13Z' fill='none' stroke='%23c3c8c1' stroke-opacity='.22'/%3E%3C/svg%3E");
     mask-image: linear-gradient(to bottom right, black, transparent 72%);
   }
+
+  .chart-line {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: chart-draw 700ms ease-out forwards;
+  }
+
+  .chart-area,
+  .chart-point {
+    animation: chart-fade 450ms ease-out both;
+  }
+}
+
+@keyframes chart-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes chart-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

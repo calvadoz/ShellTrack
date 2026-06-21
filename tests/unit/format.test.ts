@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   formatAgeYears,
   formatCalendarDate,
+  formatChartDate,
   formatDateTime,
   formatLength,
   formatNumber,
@@ -16,6 +17,10 @@ describe("localized formatting", () => {
 
   it("formats a calendar date without shifting the day", () => {
     expect(formatCalendarDate("2026-06-20")).toContain("20");
+  });
+
+  it("formats compact chart dates", () => {
+    expect(formatChartDate("2026-05-30")).toMatch(/May.+26/);
   });
 
   it("rejects an impossible calendar date", () => {

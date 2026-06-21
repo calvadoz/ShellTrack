@@ -59,6 +59,12 @@ export type Messages = {
     history: string;
     chart: string;
     chartDescription: string;
+    chartLegendRecorded: string;
+    chartLegendDrop: string;
+    chartDateAxis: string;
+    chartWeightAxisGram: string;
+    chartWeightAxisKilogram: string;
+    chartScrollHint: string;
   };
   measurement: {
     newHeading: string;

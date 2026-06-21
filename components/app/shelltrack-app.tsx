@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   ArrowLeft,
@@ -41,9 +47,11 @@ import type {
 import {
   gramToWeight,
   estimateAgeAtDate,
+  isSignificantWeightDrop,
   lengthToMm,
   mmToLength,
   petSpecies,
+  weightChangePercent,
   weightToGram,
 } from "@/lib/domain";
 import {
@@ -56,6 +64,7 @@ import {
 import {
   formatAgeYears,
   formatCalendarDate,
+  formatChartDate,
   formatLength,
   formatNumber,
   formatWeight,
@@ -528,62 +537,357 @@ function Confirm({
   );
 }
 
-function WeightChart({ measurements }: { measurements: Measurement[] }) {
-  if (measurements.length < 2) return null;
+function niceWeightTicks(values: number[], targetTickCount = 4): number[] {
+  const minimum = Math.min(...values);
+  const maximum = Math.max(...values);
+  const rawStep = Math.max((maximum - minimum) / targetTickCount, 1);
+  const magnitude = 10 ** Math.floor(Math.log10(rawStep));
+  const fraction = rawStep / magnitude;
+  const niceFraction =
+    fraction <= 1
+      ? 1
+      : fraction <= 2
+        ? 2
+        : fraction <= 2.5
+          ? 2.5
+          : fraction <= 5
+            ? 5
+            : 10;
+  const step = niceFraction * magnitude;
+  const padding = (maximum - minimum || maximum || 1) * 0.08;
+  const niceMinimum = Math.max(
+    0,
+    Math.floor((minimum - padding) / step) * step,
+  );
+  const niceMaximum = Math.ceil((maximum + padding) / step) * step;
+  const ticks: number[] = [];
+  for (
+    let value = niceMinimum;
+    value <= niceMaximum + step / 2;
+    value += step
+  ) {
+    ticks.push(value);
+  }
+  return ticks;
+}
+
+export function WeightChart({ measurements }: { measurements: Measurement[] }) {
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const scrollArea = useRef<HTMLDivElement>(null);
   const ordered = [...measurements].sort((a, b) =>
     a.measuredAt.localeCompare(b.measuredAt),
   );
-  const values = ordered.map((item) => item.weightGram);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = max - min || 1;
-  const points = ordered
-    .map((item, index) => {
-      const x =
-        ordered.length === 1 ? 50 : (index / (ordered.length - 1)) * 100;
-      const y = 88 - ((item.weightGram - min) / range) * 72;
-      return `${x},${y}`;
-    })
+
+  useEffect(() => {
+    const area = scrollArea.current;
+    if (area) area.scrollLeft = area.scrollWidth - area.clientWidth;
+  }, [measurements.length]);
+
+  if (ordered.length < 2) return null;
+
+  const chartWidth = Math.max(680, ordered.length * 11);
+  const chartHeight = 320;
+  const margin = { top: 24, right: 28, bottom: 62, left: 76 };
+  const plotWidth = chartWidth - margin.left - margin.right;
+  const plotHeight = chartHeight - margin.top - margin.bottom;
+  const weights = ordered.map((item) => item.weightGram);
+  const yTicks = niceWeightTicks(weights);
+  const yMinimum = yTicks[0];
+  const yMaximum = yTicks[yTicks.length - 1];
+  const yRange = yMaximum - yMinimum || 1;
+  const dateValues = ordered.map((item) =>
+    Date.parse(`${item.measuredAt}T00:00:00.000Z`),
+  );
+  const dateMinimum = dateValues[0];
+  const dateRange = dateValues[dateValues.length - 1] - dateMinimum || 1;
+  const weightUnit = yMaximum >= 1000 ? "kg" : "g";
+  const points = ordered.map((measurement, index) => {
+    const x =
+      margin.left + ((dateValues[index] - dateMinimum) / dateRange) * plotWidth;
+    const y =
+      margin.top +
+      (1 - (measurement.weightGram - yMinimum) / yRange) * plotHeight;
+    const previous = ordered[index - 1];
+    return {
+      measurement,
+      x,
+      y,
+      changePercent: previous
+        ? weightChangePercent(previous.weightGram, measurement.weightGram)
+        : 0,
+      significantDrop: previous
+        ? isSignificantWeightDrop(previous.weightGram, measurement.weightGram)
+        : false,
+    };
+  });
+  const linePath = points
+    .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`)
     .join(" ");
+  const baseline = margin.top + plotHeight;
+  const areaPath = `${linePath} L ${points[points.length - 1].x} ${baseline} L ${points[0].x} ${baseline} Z`;
+  const labelCount = 5;
+  const dateLabelIndexes = Array.from(
+    new Set(
+      Array.from({ length: labelCount }, (_, index) =>
+        Math.round((index * (ordered.length - 1)) / (labelCount - 1)),
+      ),
+    ),
+  );
+  const activePoint = activeIndex === null ? undefined : points[activeIndex];
+  const tooltipWidth = 142;
+  const tooltipHeight = activePoint?.significantDrop ? 62 : 48;
+  const tooltipX = activePoint
+    ? Math.min(
+        chartWidth - margin.right - tooltipWidth,
+        Math.max(margin.left, activePoint.x - tooltipWidth / 2),
+      )
+    : 0;
+  const tooltipY = activePoint
+    ? activePoint.y - tooltipHeight - 12 >= margin.top
+      ? activePoint.y - tooltipHeight - 12
+      : activePoint.y + 12
+    : 0;
+
   return (
-    <section className="rounded-lg border bg-card p-5 shadow-ambient">
-      <h2 className="font-display text-xl font-bold text-primary">
-        {messages.pet.chart}
-      </h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        {messages.pet.chartDescription}
-      </p>
-      <svg
-        aria-label={messages.pet.chart}
-        className="mt-5 h-52 w-full overflow-visible"
-        preserveAspectRatio="none"
-        role="img"
-        viewBox="0 0 100 100"
-      >
-        <line className="stroke-border" x1="0" x2="100" y1="88" y2="88" />
-        <polyline
-          className="fill-none stroke-secondary"
-          points={points}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2"
-          vectorEffect="non-scaling-stroke"
-        />
-        {points.split(" ").map((point, index) => {
-          const [cx, cy] = point.split(",");
-          return (
-            <circle
-              className="fill-primary"
-              cx={cx}
-              cy={cy}
-              key={ordered[index].id}
-              r="2.2"
+    <section className="overflow-hidden rounded-lg border bg-card shadow-ambient">
+      <div className="p-5 sm:p-6">
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+          <div>
+            <h2 className="font-display text-xl font-bold text-primary">
+              {messages.pet.chart}
+            </h2>
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
+              {messages.pet.chartDescription}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium text-muted-foreground">
+            <span className="inline-flex items-center gap-2">
+              <span className="size-2.5 rounded-full bg-primary" />
+              {messages.pet.chartLegendRecorded}
+            </span>
+            <span className="inline-flex items-center gap-2">
+              <span className="size-2.5 rounded-full bg-red-700" />
+              {messages.pet.chartLegendDrop}
+            </span>
+          </div>
+        </div>
+        <p className="mt-4 text-xs text-muted-foreground sm:hidden">
+          {messages.pet.chartScrollHint}
+        </p>
+      </div>
+
+      <div className="relative border-t bg-gradient-to-b from-muted/25 to-card">
+        <div
+          aria-label={messages.pet.chartScrollHint}
+          className="overflow-x-auto overscroll-x-contain"
+          ref={scrollArea}
+          tabIndex={0}
+        >
+          <svg
+            aria-label={messages.pet.chart}
+            className="block h-80"
+            role="img"
+            style={{ width: `${chartWidth}px` }}
+            viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+          >
+            <defs>
+              <linearGradient id="weightArea" x1="0" x2="0" y1="0" y2="1">
+                <stop
+                  offset="0%"
+                  stopColor="hsl(var(--secondary))"
+                  stopOpacity="0.22"
+                />
+                <stop
+                  offset="100%"
+                  stopColor="hsl(var(--secondary))"
+                  stopOpacity="0.02"
+                />
+              </linearGradient>
+            </defs>
+
+            {yTicks.map((tick) => {
+              const y =
+                margin.top + (1 - (tick - yMinimum) / yRange) * plotHeight;
+              return (
+                <line
+                  className="stroke-border/70"
+                  key={tick}
+                  strokeDasharray="3 5"
+                  x1={margin.left}
+                  x2={chartWidth - margin.right}
+                  y1={y}
+                  y2={y}
+                />
+              );
+            })}
+
+            {dateLabelIndexes.map((index) => {
+              const point = points[index];
+              return (
+                <g key={point.measurement.id}>
+                  <line
+                    className="stroke-border/50"
+                    x1={point.x}
+                    x2={point.x}
+                    y1={baseline}
+                    y2={baseline + 5}
+                  />
+                  <text
+                    className="fill-muted-foreground text-[11px]"
+                    textAnchor="middle"
+                    x={point.x}
+                    y={baseline + 23}
+                  >
+                    {formatChartDate(point.measurement.measuredAt)}
+                  </text>
+                </g>
+              );
+            })}
+
+            <text
+              className="fill-muted-foreground text-[11px] font-semibold"
+              textAnchor="middle"
+              x={margin.left + plotWidth / 2}
+              y={chartHeight - 8}
             >
-              <title>{`${formatCalendarDate(ordered[index].measuredAt)}: ${formatWeight(ordered[index].weightGram, "g")}`}</title>
-            </circle>
-          );
-        })}
-      </svg>
+              {messages.pet.chartDateAxis}
+            </text>
+            <path className="chart-area" d={areaPath} fill="url(#weightArea)" />
+            <path
+              className="chart-line fill-none stroke-primary"
+              d={linePath}
+              pathLength="1"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2.5"
+            />
+
+            {points.map((point, index) => {
+              if (!point.significantDrop || index === 0) return null;
+              const previous = points[index - 1];
+              return (
+                <line
+                  className="chart-line stroke-red-700"
+                  key={`drop-${point.measurement.id}`}
+                  pathLength="1"
+                  strokeLinecap="round"
+                  strokeWidth="3.5"
+                  x1={previous.x}
+                  x2={point.x}
+                  y1={previous.y}
+                  y2={point.y}
+                />
+              );
+            })}
+
+            {points.map((point, index) => (
+              <circle
+                aria-label={[
+                  formatCalendarDate(point.measurement.measuredAt),
+                  formatWeight(point.measurement.weightGram, "g"),
+                  point.significantDrop ? messages.pet.chartLegendDrop : null,
+                ]
+                  .filter(Boolean)
+                  .join(", ")}
+                className={cn(
+                  "chart-point cursor-pointer stroke-card stroke-2 outline-none focus:stroke-[4]",
+                  point.significantDrop ? "fill-red-700" : "fill-primary",
+                )}
+                cx={point.x}
+                cy={point.y}
+                key={point.measurement.id}
+                onBlur={() => setActiveIndex(null)}
+                onFocus={() => setActiveIndex(index)}
+                onPointerDown={() => setActiveIndex(index)}
+                onPointerEnter={() => setActiveIndex(index)}
+                onPointerLeave={() => setActiveIndex(null)}
+                r={point.significantDrop ? 4.5 : 3.5}
+                role="button"
+                tabIndex={0}
+              >
+                <title>{`${formatCalendarDate(point.measurement.measuredAt)}: ${formatWeight(point.measurement.weightGram, "g")}`}</title>
+              </circle>
+            ))}
+
+            {activePoint ? (
+              <g
+                className="pointer-events-none"
+                transform={`translate(${tooltipX} ${tooltipY})`}
+              >
+                <rect
+                  fill="hsl(var(--primary))"
+                  height={tooltipHeight}
+                  rx="8"
+                  width={tooltipWidth}
+                />
+                <text
+                  fill="hsl(var(--primary-foreground))"
+                  fontSize="11"
+                  x="12"
+                  y="19"
+                >
+                  {formatCalendarDate(activePoint.measurement.measuredAt)}
+                </text>
+                <text
+                  fill="hsl(var(--primary-foreground))"
+                  fontSize="13"
+                  fontWeight="700"
+                  x="12"
+                  y="38"
+                >
+                  {formatWeight(activePoint.measurement.weightGram, "g")}
+                </text>
+                {activePoint.significantDrop ? (
+                  <text
+                    fill="#fecaca"
+                    fontSize="11"
+                    fontWeight="600"
+                    x="12"
+                    y="54"
+                  >
+                    {formatNumber(activePoint.changePercent, {
+                      maximumFractionDigits: 1,
+                    })}
+                    %
+                  </text>
+                ) : null}
+              </g>
+            ) : null}
+          </svg>
+        </div>
+        <svg
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-y-0 left-0 z-10 h-80 w-[76px] bg-card/95 shadow-[8px_0_16px_rgba(27,48,34,0.04)]"
+          viewBox={`0 0 ${margin.left} ${chartHeight}`}
+        >
+          {yTicks.map((tick) => {
+            const y =
+              margin.top + (1 - (tick - yMinimum) / yRange) * plotHeight;
+            return (
+              <text
+                className="fill-muted-foreground text-[11px]"
+                key={tick}
+                textAnchor="end"
+                x={margin.left - 12}
+                y={y + 4}
+              >
+                {formatWeight(tick, weightUnit)}
+              </text>
+            );
+          })}
+          <text
+            className="fill-muted-foreground text-[11px] font-semibold"
+            textAnchor="middle"
+            transform={`rotate(-90 16 ${margin.top + plotHeight / 2})`}
+            x={16}
+            y={margin.top + plotHeight / 2}
+          >
+            {weightUnit === "kg"
+              ? messages.pet.chartWeightAxisKilogram
+              : messages.pet.chartWeightAxisGram}
+          </text>
+        </svg>
+      </div>
     </section>
   );
 }

@@ -23,6 +23,7 @@ The supplied Stitch archive is the visual starting point. Its â€œSteadfast Careâ
 - Keep text and controls easy to see, and make keyboard focus visible.
 - Make touch targets at least 44px high, label unclear icons, and confirm before deleting anything.
 - Treat charts as summaries. Support them with readable labels, tables, and empty states.
+- Plot every weight record with date and weight axes, a readable legend, and focusable points. Mark a drop of 10% or more from the immediately previous record in red as a comparison cue, not a health judgment.
 - Do not show unsupported health judgments, growth percentiles, or generic care advice as facts.
 - Avoid a persistent preloader; the animated mark appears only during genuine route loading.
 

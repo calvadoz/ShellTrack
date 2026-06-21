@@ -45,6 +45,21 @@ export function formatCalendarDate(
   }).format(date);
 }
 
+export function formatChartDate(
+  isoDate: string,
+  { locale = defaultLocale }: FormatOptions = {},
+): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate);
+  if (!match) throw new RangeError("Use a calendar date in YYYY-MM-DD format.");
+  const [, year, month, day] = match;
+  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+  return new Intl.DateTimeFormat(locale, {
+    month: "short",
+    year: "2-digit",
+    timeZone: "UTC",
+  }).format(date);
+}
+
 export function formatDateTime(
   value: Date | number | string,
   { locale = defaultLocale, timeZone }: DateTimeOptions = {},

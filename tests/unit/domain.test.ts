@@ -1,12 +1,26 @@
 import { describe, expect, it } from "vitest";
 
-import { estimateAgeAtDate, lengthToMm, weightToGram } from "@/lib/domain";
+import {
+  estimateAgeAtDate,
+  isSignificantWeightDrop,
+  lengthToMm,
+  significantWeightDropPercent,
+  weightChangePercent,
+  weightToGram,
+} from "@/lib/domain";
 import {
   measurementDraftSchema,
   petDraftSchema,
 } from "@/lib/validation/schemas";
 
 describe("domain rules", () => {
+  it("flags weight drops of ten percent or more", () => {
+    expect(significantWeightDropPercent).toBe(10);
+    expect(weightChangePercent(1000, 900)).toBe(-10);
+    expect(isSignificantWeightDrop(1000, 900)).toBe(true);
+    expect(isSignificantWeightDrop(1000, 901)).toBe(false);
+  });
+
   it("derives age from the first and latest measurement dates", () => {
     expect(estimateAgeAtDate(1.5, "2023-02-18", "2026-05-30")).toBeCloseTo(
       4.78,

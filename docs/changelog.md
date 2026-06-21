@@ -21,6 +21,7 @@
 
 ### Changed
 
+- Replaced the weight graph with a responsive, horizontally explorable chart featuring labelled axes, a legend, one accessible point per record, details on hover or focus, and red segments for decreases of 10% or more from the previous record.
 - Estimated age now advances from the pet's age at its first measurement to the latest record date using a 365.2425-day average year.
 - Marked the local-first MVP as Iteration 2 and clarified calendar dates, audit timestamps, local UUIDs, and deferred pet photos.
 - Updated the mockup plan to keep the first version on the device, make shell dimensions optional, show missing values clearly, and remove cloud or health claims that the app cannot support yet.

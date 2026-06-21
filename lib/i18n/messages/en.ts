@@ -78,7 +78,13 @@ export const en: Messages = {
     history: "Measurement history",
     chart: "Weight over time",
     chartDescription:
-      "A visual summary of recorded weight. The full values are listed below.",
+      "Explore every recorded weight. Red points mark a drop of 10% or more from the previous record.",
+    chartLegendRecorded: "Recorded weight",
+    chartLegendDrop: "Drop of 10% or more",
+    chartDateAxis: "Measurement date",
+    chartWeightAxisGram: "Weight in grams",
+    chartWeightAxisKilogram: "Weight in kilograms",
+    chartScrollHint: "Swipe or scroll to explore earlier records.",
   },
   measurement: {
     newHeading: "Add measurement",
