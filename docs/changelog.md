@@ -30,6 +30,7 @@
 ### Corrected
 
 - Aligned Add Measurement with the approved Add Pet mobile modal: the same header, 20px gutters, field sizing, optional labels, plain form rhythm, and Cancel or Save actions, with shell dimensions compactly collapsed until needed.
+- Constrained native date inputs to their mobile form column and left-aligned the value in iOS browsers without replacing the system picker.
 
 ### Known Issues
 

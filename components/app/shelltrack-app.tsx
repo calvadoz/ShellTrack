@@ -216,7 +216,7 @@ function PetForm({ pet, onClose }: { pet?: Pet; onClose: () => void }) {
           </Field>
           <Field label={messages.pet.birthDate} hint={messages.common.optional}>
             <input
-              className={inputClass}
+              className={cn(inputClass, "date-input")}
               defaultValue={pet?.birthDate}
               name="birthDate"
               type="date"
@@ -374,7 +374,7 @@ function MeasurementForm({
       <form className="mt-6 grid min-w-0 gap-5" onSubmit={submit}>
         <Field label={messages.measurement.date}>
           <input
-            className={inputClass}
+            className={cn(inputClass, "date-input")}
             name="measuredAt"
             onChange={(event) => setDateInput(event.target.value)}
             required

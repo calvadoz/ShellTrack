@@ -35,6 +35,22 @@
   ::selection {
     @apply bg-accent text-accent-foreground;
   }
+
+  input[type="date"].date-input {
+    box-sizing: border-box;
+    display: block;
+    inline-size: 100%;
+    min-inline-size: 0;
+    max-inline-size: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    text-align: left;
+  }
+
+  input[type="date"].date-input::-webkit-date-and-time-value {
+    min-inline-size: 0;
+    text-align: left;
+  }
 }
 
 @layer utilities {

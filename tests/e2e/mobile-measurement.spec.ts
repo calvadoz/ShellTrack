@@ -25,15 +25,22 @@ test("keeps the measurement form usable at a narrow mobile viewport", async ({
   const layout = await page.evaluate(() => {
     const screenElement = document.querySelector('[role="dialog"]');
     const bounds = screenElement?.getBoundingClientRect();
+    const dateBounds = document
+      .querySelector<HTMLInputElement>('input[type="date"]')
+      ?.getBoundingClientRect();
     return {
       viewportWidth: window.innerWidth,
       pageWidth: document.documentElement.scrollWidth,
       dialogLeft: bounds?.left,
       dialogRight: bounds?.right,
+      dateLeft: dateBounds?.left,
+      dateRight: dateBounds?.right,
     };
   });
 
   expect(layout.pageWidth).toBe(layout.viewportWidth);
   expect(layout.dialogLeft).toBeGreaterThanOrEqual(0);
   expect(layout.dialogRight).toBeLessThanOrEqual(layout.viewportWidth);
+  expect(layout.dateLeft).toBeGreaterThan(layout.dialogLeft ?? 0);
+  expect(layout.dateRight).toBeLessThan(layout.dialogRight ?? 0);
 });
