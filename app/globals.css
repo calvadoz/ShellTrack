@@ -28,6 +28,14 @@
     color-scheme: light;
   }
 
+  html,
+  body {
+    inline-size: 100%;
+    max-inline-size: 100%;
+    overflow-x: hidden;
+    overflow-x: clip;
+  }
+
   body {
     @apply bg-background font-sans text-foreground antialiased;
   }

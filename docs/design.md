@@ -10,6 +10,8 @@ The supplied Stitch archive is the visual starting point. Its â€œSteadfast Careâ
 - Type: Montserrat for identity, headings, and important measurements; Inter for body and interface copy.
 - Shape: 16px cards, 12px controls, and pills only for compact statuses.
 - Layout: one fluid mobile column with 20px gutters; a centered 1280px desktop grid with 24px gutters. A desktop sidebar and mobile bottom navigation are planned for the MVP.
+- Viewport: screens must never widen the page beyond the device. Wide content stays inside its own scroll container, while browser zoom remains available for accessibility.
+- Regression coverage: every new screen and major overlay joins the viewport tour at 320, 390, 430, 640, and 768px before it is considered complete.
 - Depth: gentle color layers, subtle borders, and soft shadows rather than hard outlines.
 - Motif: faint shell patterns can support the brand, but they must never make text harder to read.
 
@@ -24,8 +26,10 @@ The supplied Stitch archive is the visual starting point. Its â€œSteadfast Careâ
 - Make touch targets at least 44px high, label unclear icons, and confirm before deleting anything.
 - Treat charts as summaries. Support them with readable labels, tables, and empty states.
 - Plot every weight record with date and weight axes and a readable legend. Keep dense histories legible with a limited set of visible markers and one large touch or keyboard surface that selects the nearest record. Mark a drop of 10% or more from the immediately previous record in red as a comparison cue, not a health judgment.
+- Show measurement history as compact cards on phones and small tablets, with date, weight, recorded dimensions, and labeled actions. Use a contained table on larger screens and keep its action column visible during horizontal scrolling.
 - Do not show unsupported health judgments, growth percentiles, or generic care advice as facts.
 - Avoid a persistent preloader; the animated mark appears only during genuine route loading.
+- Keep unresolved local queries distinct from empty data. Show a calm status loader until device storage is ready, then show either records or the true empty state.
 
 ## Motion
 

@@ -19,9 +19,10 @@ For Iteration 1, do not add authentication, Supabase, cloud storage, sync, billi
 - Use the Next.js App Router, TypeScript strict mode, Tailwind CSS, and shadcn/ui conventions.
 - Keep pet and measurement rules in `lib/domain`, checks in `lib/validation`, device storage in `lib/db`, and import or export work in `lib/export`.
 - Prefer small, testable functions and accessible semantic HTML.
+- Build every screen mobile-first and keep the document width within the device viewport. Put intentionally wide content inside its own contained scroller, never disable browser zoom, and add each new screen to the mobile viewport regression tour.
 - Respect reduced-motion settings. Animation should make the interface clearer, not slow people down.
 - Update relevant documentation and `docs/changelog.md` when behavior or contributor contracts change.
-- Run `pnpm lint`, `pnpm typecheck`, and `pnpm test` before completing work.
+- Run `pnpm lint`, `pnpm typecheck`, and `pnpm test` before completing work. Run the relevant Playwright viewport checks when a development server is explicitly available.
 - Do not start a development or production server unless the user asks.
 
 ## Writing and localization

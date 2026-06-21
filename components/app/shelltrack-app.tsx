@@ -1103,13 +1103,90 @@ function PetDetail({ petId, onBack }: { petId: string; onBack: () => void }) {
           <WeightChart measurements={measurements} />
         </div>
         {ordered.length ? (
-          <section className="mt-6 overflow-hidden rounded-lg border bg-card shadow-ambient">
+          <section className="mt-6 min-w-0 max-w-full overflow-hidden rounded-lg border bg-card shadow-ambient">
             <div className="border-b px-5 py-4">
               <h2 className="font-display text-xl font-bold text-primary">
                 {messages.pet.history}
               </h2>
             </div>
-            <div className="overflow-x-auto">
+            <div className="divide-y md:hidden">
+              {ordered.map((item) => {
+                const dimensions = [
+                  {
+                    label: messages.measurement.shellLength,
+                    value: item.shellLengthMm,
+                  },
+                  {
+                    label: messages.measurement.shellWidth,
+                    value: item.shellWidthMm,
+                  },
+                  {
+                    label: messages.measurement.shellHeight,
+                    value: item.shellHeightMm,
+                  },
+                ].filter((dimension) => dimension.value !== undefined);
+
+                return (
+                  <article className="px-5 py-5" key={item.id}>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground">
+                          {messages.measurement.date}
+                        </p>
+                        <p className="mt-1 font-semibold text-foreground">
+                          {formatCalendarDate(item.measuredAt)}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs font-medium text-muted-foreground">
+                          {messages.measurement.weight}
+                        </p>
+                        <p className="mt-1 font-display text-lg font-bold text-primary">
+                          {formatWeight(item.weightGram, "g")}
+                        </p>
+                      </div>
+                    </div>
+
+                    {dimensions.length ? (
+                      <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 rounded-md bg-muted/55 p-3">
+                        {dimensions.map((dimension) => (
+                          <div key={dimension.label}>
+                            <dt className="text-xs text-muted-foreground">
+                              {dimension.label}
+                            </dt>
+                            <dd className="mt-1 text-sm font-medium">
+                              {dimension.value === undefined
+                                ? null
+                                : formatLength(dimension.value, "mm")}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                    ) : null}
+
+                    <div className="mt-4 flex justify-end gap-2 border-t pt-3">
+                      <Button
+                        onClick={() => setMeasurementEditor(item)}
+                        size="default"
+                        variant="ghost"
+                      >
+                        <Pencil className="size-4" />
+                        {messages.common.edit}
+                      </Button>
+                      <Button
+                        onClick={() => setDeleteTarget(item)}
+                        size="default"
+                        variant="ghost"
+                      >
+                        <Trash2 className="size-4" />
+                        {messages.common.delete}
+                      </Button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+            <div className="hidden min-w-0 max-w-full overflow-x-auto overscroll-x-contain md:block">
               <table className="w-full min-w-[760px] text-left text-sm">
                 <thead className="bg-muted/70 text-muted-foreground">
                   <tr>
@@ -1124,7 +1201,7 @@ function PetDetail({ petId, onBack }: { petId: string; onBack: () => void }) {
                     <th className="px-5 py-3">
                       {messages.measurement.shellHeight}
                     </th>
-                    <th className="px-5 py-3">
+                    <th className="sticky right-0 bg-muted px-5 py-3 shadow-[-8px_0_16px_rgba(27,48,34,0.05)]">
                       <span className="sr-only">{messages.common.edit}</span>
                     </th>
                   </tr>
@@ -1154,12 +1231,12 @@ function PetDetail({ petId, onBack }: { petId: string; onBack: () => void }) {
                             : formatLength(value, "mm")}
                         </td>
                       ))}
-                      <td className="px-5 py-4">
+                      <td className="sticky right-0 bg-card px-5 py-4 shadow-[-8px_0_16px_rgba(27,48,34,0.05)]">
                         <div className="flex justify-end gap-1">
                           <Button
                             aria-label={messages.common.edit}
                             onClick={() => setMeasurementEditor(item)}
-                            size="sm"
+                            size="icon"
                             variant="ghost"
                           >
                             <Pencil className="size-4" />
@@ -1167,7 +1244,7 @@ function PetDetail({ petId, onBack }: { petId: string; onBack: () => void }) {
                           <Button
                             aria-label={messages.common.delete}
                             onClick={() => setDeleteTarget(item)}
-                            size="sm"
+                            size="icon"
                             variant="ghost"
                           >
                             <Trash2 className="size-4" />
@@ -1226,11 +1303,20 @@ function PetDetail({ petId, onBack }: { petId: string; onBack: () => void }) {
   );
 }
 
-function PetList({ onOpen }: { onOpen: (id: string) => void }) {
-  const pets =
-    useLiveQuery(() => db.pets.orderBy("updatedAt").reverse().toArray()) ?? [];
-  const measurements = useLiveQuery(() => db.measurements.toArray()) ?? [];
+function PetList({
+  onOpen,
+  storageReady,
+}: {
+  onOpen: (id: string) => void;
+  storageReady: boolean;
+}) {
+  const pets = useLiveQuery(() =>
+    db.pets.orderBy("updatedAt").reverse().toArray(),
+  );
+  const measurements = useLiveQuery(() => db.measurements.toArray());
   const [editing, setEditing] = useState(false);
+  const loading =
+    !storageReady || pets === undefined || measurements === undefined;
   return (
     <main className="min-w-0 flex-1 px-5 pb-28 pt-8 sm:px-8 lg:pb-10 lg:pt-10">
       <div className="mx-auto max-w-5xl">
@@ -1251,7 +1337,21 @@ function PetList({ onOpen }: { onOpen: (id: string) => void }) {
             {messages.dashboard.addPet}
           </Button>
         </header>
-        {pets.length ? (
+        {loading ? (
+          <section
+            aria-label={messages.loading.label}
+            aria-live="polite"
+            className="mt-8 grid min-h-56 place-items-center rounded-lg border bg-card px-6 py-12 text-center shadow-[0_2px_8px_rgba(27,48,34,0.04)]"
+            role="status"
+          >
+            <div className="grid justify-items-center gap-3 text-primary">
+              <ShellMark className="size-12" />
+              <p className="text-sm font-semibold text-muted-foreground">
+                {messages.loading.status}
+              </p>
+            </div>
+          </section>
+        ) : pets.length ? (
           <section className="mt-8 grid gap-5 md:grid-cols-2">
             {pets.map((pet) => {
               const records = measurements
@@ -1474,11 +1574,20 @@ function DataView({ onImported }: { onImported: () => void }) {
 export function ShellTrackApp() {
   const [view, setView] = useState<View>("pets");
   const [petId, setPetId] = useState<string>();
+  const [storageReady, setStorageReady] = useState(false);
   useEffect(() => {
-    void ensureDefaultData();
+    let active = true;
+    void ensureDefaultData()
+      .catch(() => undefined)
+      .then(() => {
+        if (active) setStorageReady(true);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
   return (
-    <div className="min-h-dvh lg:flex">
+    <div className="min-h-dvh min-w-0 max-w-full overflow-x-clip lg:flex">
       <aside className="hidden w-64 shrink-0 flex-col bg-primary px-5 py-7 text-primary-foreground lg:flex">
         <div className="flex items-center gap-3">
           <ShellMark className="size-10 text-primary-foreground" />
@@ -1519,7 +1628,7 @@ export function ShellTrackApp() {
       {petId ? (
         <PetDetail onBack={() => setPetId(undefined)} petId={petId} />
       ) : view === "pets" ? (
-        <PetList onOpen={setPetId} />
+        <PetList onOpen={setPetId} storageReady={storageReady} />
       ) : (
         <DataView
           onImported={() => {

@@ -45,8 +45,16 @@ Keep ShellTrack calm, practical, local-first, and easy to understand.
 - Keep Iteration 1 free from accounts, cloud storage, billing, and SaaS features.
 - Prefer small changes and shared helpers over early frameworks or broad abstractions.
 
+## Keep screens inside the viewport
+
+- Design mobile-first and support 320, 390, 430, 640, and 768px widths.
+- Never let a child widen the document. Contain wide tables, charts, and controls in their own scroller or replace them with a mobile layout.
+- Keep browser pinch zoom available. Never use `user-scalable=no` or a restrictive maximum scale as a layout fix.
+- Add every new screen or major overlay to `tests/e2e/viewport.spec.ts` and assert that document width does not exceed viewport width.
+
 ## Finish carefully
 
 - Update tests and project guides when a shared rule changes.
 - Update `docs/changelog.md` for meaningful user or contributor changes.
 - Run `pnpm lint`, `pnpm typecheck`, and `pnpm test` without starting a server.
+- Run the relevant Playwright viewport checks when a development server is explicitly available.

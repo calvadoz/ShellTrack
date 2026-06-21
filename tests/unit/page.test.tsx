@@ -1,6 +1,6 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("dexie-react-hooks", () => ({
   useLiveQuery: () => [],
@@ -12,9 +12,12 @@ vi.mock("@/lib/db", async (importOriginal) => ({
 }));
 
 import Home from "@/app/page";
+import { ensureDefaultData } from "@/lib/db";
 import { getMessages } from "@/lib/i18n/messages";
 
 const messages = getMessages();
+
+afterEach(() => cleanup());
 
 describe("Home", () => {
   it("opens the local pet journal", async () => {
@@ -27,5 +30,28 @@ describe("Home", () => {
       await screen.findByText(messages.dashboard.emptyHeading),
     ).toBeInTheDocument();
     expect(screen.getAllByText(messages.nav.localStatus)).toHaveLength(1);
+  });
+
+  it("shows a loader instead of the empty state while local data initializes", async () => {
+    let finishInitialization: (() => void) | undefined;
+    vi.mocked(ensureDefaultData).mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        finishInitialization = resolve;
+      }),
+    );
+
+    render(<Home />);
+
+    expect(
+      screen.getByRole("status", { name: messages.loading.label }),
+    ).toBeVisible();
+    expect(
+      screen.queryByText(messages.dashboard.emptyHeading),
+    ).not.toBeInTheDocument();
+
+    finishInitialization?.();
+    expect(
+      await screen.findByText(messages.dashboard.emptyHeading),
+    ).toBeVisible();
   });
 });
