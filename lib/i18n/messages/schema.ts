@@ -4,15 +4,15 @@ export type Messages = {
   common: {
     appName: string;
     tagline: string;
+    save: string;
+    cancel: string;
+    edit: string;
+    delete: string;
+    optional: string;
+    notRecorded: string;
   };
-  metadata: {
-    titleTemplate: string;
-    description: string;
-  };
-  loading: {
-    label: string;
-    status: string;
-  };
+  metadata: { titleTemplate: string; description: string };
+  loading: { label: string; status: string };
   home: {
     eyebrow: string;
     heading: string;
@@ -25,4 +25,83 @@ export type Messages = {
     }>;
     footer: string;
   };
+  nav: { pets: string; data: string; localStatus: string };
+  dashboard: {
+    eyebrow: string;
+    heading: string;
+    introduction: string;
+    addPet: string;
+    emptyHeading: string;
+    emptyBody: string;
+    latest: string;
+    measurementCount: string;
+    openPet: string;
+  };
+  pet: {
+    newHeading: string;
+    editHeading: string;
+    name: string;
+    species: string;
+    sex: string;
+    birthDate: string;
+    estimatedAge: string;
+    estimatedAgeLatest: string;
+    notes: string;
+    years: string;
+    deleteHeading: string;
+    deleteBody: string;
+    deleteConfirm: string;
+    back: string;
+    addMeasurement: string;
+    noMeasurements: string;
+    noMeasurementsBody: string;
+    latestWeight: string;
+    history: string;
+    chart: string;
+    chartDescription: string;
+  };
+  measurement: {
+    newHeading: string;
+    editHeading: string;
+    date: string;
+    weight: string;
+    weightUnit: string;
+    dimensions: string;
+    shellLength: string;
+    shellWidth: string;
+    shellHeight: string;
+    lengthUnit: string;
+    notes: string;
+    deleteHeading: string;
+    deleteBody: string;
+    deleteConfirm: string;
+  };
+  validation: {
+    required: string;
+    positive: string;
+    saveFailed: string;
+  };
+  data: {
+    eyebrow: string;
+    heading: string;
+    introduction: string;
+    exportHeading: string;
+    exportBody: string;
+    exportJson: string;
+    exportCsv: string;
+    importHeading: string;
+    importBody: string;
+    chooseFile: string;
+    replaceWarning: string;
+    importConfirm: string;
+    importSuccess: string;
+    importError: string;
+    noMeasurements: string;
+    deleteHeading: string;
+    deleteBody: string;
+    deleteAction: string;
+    deleteSuccess: string;
+  };
+  species: Record<string, string>;
+  sex: Record<string, string>;
 };

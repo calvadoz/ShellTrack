@@ -4,7 +4,7 @@ ShellTrack is a private pet growth tracker that keeps data on your device. It st
 
 ## Current status
 
-Iteration 1 sets up the project and its visual foundation. Adding pets, recording measurements, saving browser data, charts, and import or export will come in the next approved iteration.
+Iteration 2 is a working local-first MVP. It saves pets and measurements in this browser, shows growth history, and supports JSON backups and measurement CSV export.
 
 ## Stack
 
@@ -41,10 +41,10 @@ Playwright browsers may need to be installed once with `pnpm exec playwright ins
 
 ## Product rules
 
-- Iteration 1 keeps everything on the device. It does not include accounts, cloud storage, billing, or online services.
+- Iteration 2 keeps everything on the device. It does not include accounts, cloud storage, billing, or online services.
 - Measurement weight is required and stored internally in grams.
 - Shell length, width, and height are optional and stored internally in millimeters.
-- Dates use the ISO format, and the app creates IDs on the device during the first product iteration.
+- Calendar dates use `YYYY-MM-DD`, audit times use full ISO strings, and IDs are created on the device.
 - English is the first language, with shared message and formatting helpers ready for future translations.
 
 See `AGENTS.md` and the `docs/` folder for the design choices, data rules, and iteration plan.

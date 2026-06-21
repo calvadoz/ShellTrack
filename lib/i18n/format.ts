@@ -95,3 +95,15 @@ export function formatLength(
     maximumFractionDigits: unit === "cm" ? 1 : 0,
   }).format(value);
 }
+
+export function formatAgeYears(
+  years: number,
+  { locale = defaultLocale }: FormatOptions = {},
+): string {
+  return new Intl.NumberFormat(locale, {
+    style: "unit",
+    unit: "year",
+    unitDisplay: "long",
+    maximumFractionDigits: 1,
+  }).format(years);
+}

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  formatAgeYears,
   formatCalendarDate,
   formatDateTime,
   formatLength,
@@ -9,6 +10,10 @@ import {
 } from "@/lib/i18n/format";
 
 describe("localized formatting", () => {
+  it("formats derived ages as a localized unit", () => {
+    expect(formatAgeYears(4.78)).toBe("4.8 years");
+  });
+
   it("formats a calendar date without shifting the day", () => {
     expect(formatCalendarDate("2026-06-20")).toContain("20");
   });
