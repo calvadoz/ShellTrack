@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 43 37% 97%;
+    --foreground: 90 5% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 90 5% 10%;
+    --primary: 145 64% 6%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 60 23% 31%;
+    --secondary-foreground: 61 24% 25%;
+    --muted: 42 18% 94%;
+    --muted-foreground: 120 4% 36%;
+    --accent: 55 53% 83%;
+    --accent-foreground: 72 85% 8%;
+    --border: 108 5% 80%;
+    --radius: 1rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    color-scheme: light;
+  }
+
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+  }
+
+  ::selection {
+    @apply bg-accent text-accent-foreground;
+  }
+}
+
+@layer utilities {
+  .shell-pattern {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='84' viewBox='0 0 96 84'%3E%3Cpath d='M24 1 47 14v27L24 54 1 41V14L24 1Zm48 29 23 13v27L72 83 49 70V43l23-13Z' fill='none' stroke='%23c3c8c1' stroke-opacity='.22'/%3E%3C/svg%3E");
+    mask-image: linear-gradient(to bottom right, black, transparent 72%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
