@@ -18,10 +18,7 @@ function toDate(value: Date | number | string): Date {
   return date;
 }
 
-export function formatCalendarDate(
-  isoDate: string,
-  { locale = defaultLocale }: FormatOptions = {},
-): string {
+function toCalendarDate(isoDate: string): Date {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate);
 
   if (!match) {
@@ -39,25 +36,49 @@ export function formatCalendarDate(
     throw new RangeError("The calendar date is not valid.");
   }
 
+  return date;
+}
+
+export function formatCalendarDate(
+  isoDate: string,
+  { locale = defaultLocale }: FormatOptions = {},
+): string {
   return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeZone: "UTC",
-  }).format(date);
+  }).format(toCalendarDate(isoDate));
 }
 
 export function formatChartDate(
   isoDate: string,
   { locale = defaultLocale }: FormatOptions = {},
 ): string {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate);
-  if (!match) throw new RangeError("Use a calendar date in YYYY-MM-DD format.");
-  const [, year, month, day] = match;
-  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
   return new Intl.DateTimeFormat(locale, {
     month: "short",
     year: "2-digit",
     timeZone: "UTC",
-  }).format(date);
+  }).format(toCalendarDate(isoDate));
+}
+
+export function formatMeasurementListDate(
+  isoDate: string,
+  { locale = defaultLocale }: FormatOptions = {},
+): string {
+  return new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  }).format(toCalendarDate(isoDate));
+}
+
+export function formatCalendarYear(
+  isoDate: string,
+  { locale = defaultLocale }: FormatOptions = {},
+): string {
+  return new Intl.DateTimeFormat(locale, {
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(toCalendarDate(isoDate));
 }
 
 export function formatDateTime(

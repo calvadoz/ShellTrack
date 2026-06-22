@@ -3,9 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
   formatAgeYears,
   formatCalendarDate,
+  formatCalendarYear,
   formatChartDate,
   formatDateTime,
   formatLength,
+  formatMeasurementListDate,
   formatNumber,
   formatWeight,
 } from "@/lib/i18n/format";
@@ -21,6 +23,11 @@ describe("localized formatting", () => {
 
   it("formats compact chart dates", () => {
     expect(formatChartDate("2026-05-30")).toMatch(/May.+26/);
+  });
+
+  it("formats compact measurement list dates and year groups", () => {
+    expect(formatMeasurementListDate("2026-05-30")).toMatch(/May.+30|30.+May/);
+    expect(formatCalendarYear("2026-05-30")).toBe("2026");
   });
 
   it("rejects an impossible calendar date", () => {

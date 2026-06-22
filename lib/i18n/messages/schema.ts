@@ -10,6 +10,7 @@ export type Messages = {
     delete: string;
     optional: string;
     notRecorded: string;
+    notRecordedShort: string;
   };
   metadata: { titleTemplate: string; description: string };
   loading: { label: string; status: string };
@@ -78,6 +79,9 @@ export type Messages = {
     shellHeight: string;
     lengthUnit: string;
     notes: string;
+    showDetails: string;
+    hideDetails: string;
+    changeFromPrevious: string;
     deleteHeading: string;
     deleteBody: string;
     deleteConfirm: string;

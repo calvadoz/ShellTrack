@@ -12,6 +12,7 @@ import {
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   ArrowLeft,
+  ChevronDown,
   Database,
   Download,
   Leaf,
@@ -66,8 +67,10 @@ import {
 import {
   formatAgeYears,
   formatCalendarDate,
+  formatCalendarYear,
   formatChartDate,
   formatLength,
+  formatMeasurementListDate,
   formatNumber,
   formatWeight,
 } from "@/lib/i18n/format";
@@ -1006,8 +1009,34 @@ function PetDetail({ petId, onBack }: { petId: string; onBack: () => void }) {
   const [deleteTarget, setDeleteTarget] = useState<Pet | Measurement | null>(
     null,
   );
+  const [expandedMeasurementId, setExpandedMeasurementId] = useState<string>();
   if (!pet) return null;
   const ordered = [...measurements].reverse();
+  const chronological = [...measurements].sort((a, b) =>
+    a.measuredAt.localeCompare(b.measuredAt),
+  );
+  const changesByMeasurementId = new Map<
+    string,
+    { percent: number; significantDrop: boolean }
+  >();
+  chronological.forEach((measurement, index) => {
+    const previous = chronological[index - 1];
+    if (!previous) return;
+    changesByMeasurementId.set(measurement.id, {
+      percent: weightChangePercent(previous.weightGram, measurement.weightGram),
+      significantDrop: isSignificantWeightDrop(
+        previous.weightGram,
+        measurement.weightGram,
+      ),
+    });
+  });
+  const measurementGroups: Array<{ year: string; records: Measurement[] }> = [];
+  ordered.forEach((measurement) => {
+    const year = formatCalendarYear(measurement.measuredAt);
+    const currentGroup = measurementGroups[measurementGroups.length - 1];
+    if (currentGroup?.year === year) currentGroup.records.push(measurement);
+    else measurementGroups.push({ year, records: [measurement] });
+  });
   const latest = ordered[0];
   const first = measurements[0];
   const estimatedAge =
@@ -1109,82 +1138,140 @@ function PetDetail({ petId, onBack }: { petId: string; onBack: () => void }) {
                 {messages.pet.history}
               </h2>
             </div>
-            <div className="divide-y md:hidden">
-              {ordered.map((item) => {
-                const dimensions = [
-                  {
-                    label: messages.measurement.shellLength,
-                    value: item.shellLengthMm,
-                  },
-                  {
-                    label: messages.measurement.shellWidth,
-                    value: item.shellWidthMm,
-                  },
-                  {
-                    label: messages.measurement.shellHeight,
-                    value: item.shellHeightMm,
-                  },
-                ].filter((dimension) => dimension.value !== undefined);
+            <div className="md:hidden">
+              {measurementGroups.map((group) => (
+                <section key={group.year}>
+                  <h3 className="sticky top-0 z-10 border-y bg-muted/95 px-4 py-2 text-xs font-bold tracking-wide text-muted-foreground backdrop-blur">
+                    {group.year}
+                  </h3>
+                  <div className="divide-y">
+                    {group.records.map((item) => {
+                      const expanded = expandedMeasurementId === item.id;
+                      const change = changesByMeasurementId.get(item.id);
+                      const dimensions = [
+                        {
+                          label: messages.measurement.shellLength,
+                          value: item.shellLengthMm,
+                        },
+                        {
+                          label: messages.measurement.shellWidth,
+                          value: item.shellWidthMm,
+                        },
+                        {
+                          label: messages.measurement.shellHeight,
+                          value: item.shellHeightMm,
+                        },
+                      ].filter((dimension) => dimension.value !== undefined);
 
-                return (
-                  <article className="px-5 py-5" key={item.id}>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-xs font-medium text-muted-foreground">
-                          {messages.measurement.date}
-                        </p>
-                        <p className="mt-1 font-semibold text-foreground">
-                          {formatCalendarDate(item.measuredAt)}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs font-medium text-muted-foreground">
-                          {messages.measurement.weight}
-                        </p>
-                        <p className="mt-1 font-display text-lg font-bold text-primary">
-                          {formatWeight(item.weightGram, "g")}
-                        </p>
-                      </div>
-                    </div>
+                      return (
+                        <article key={item.id}>
+                          <button
+                            aria-expanded={expanded}
+                            className="grid min-h-14 w-full grid-cols-[minmax(0,1fr)_auto_3.75rem_1.25rem] items-center gap-2 px-4 py-3 text-left transition-colors hover:bg-muted/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+                            onClick={() =>
+                              setExpandedMeasurementId(
+                                expanded ? undefined : item.id,
+                              )
+                            }
+                            type="button"
+                          >
+                            <span className="min-w-0 font-medium">
+                              {formatMeasurementListDate(item.measuredAt)}
+                            </span>
+                            <span className="whitespace-nowrap font-display text-sm font-bold text-primary">
+                              {formatWeight(item.weightGram, "g")}
+                            </span>
+                            <span
+                              className={cn(
+                                "text-right text-xs font-semibold tabular-nums",
+                                change?.significantDrop
+                                  ? "text-red-700"
+                                  : "text-muted-foreground",
+                              )}
+                            >
+                              <span className="sr-only">
+                                {messages.measurement.changeFromPrevious}
+                              </span>
+                              <span>
+                                {change
+                                  ? formatNumber(change.percent / 100, {
+                                      maximumFractionDigits: 1,
+                                      signDisplay: "always",
+                                      style: "percent",
+                                    })
+                                  : messages.common.notRecordedShort}
+                              </span>
+                            </span>
+                            <span className="sr-only">
+                              {expanded
+                                ? messages.measurement.hideDetails
+                                : messages.measurement.showDetails}
+                            </span>
+                            <ChevronDown
+                              aria-hidden="true"
+                              className={cn(
+                                "size-5 text-muted-foreground transition-transform",
+                                expanded && "rotate-180",
+                              )}
+                            />
+                          </button>
 
-                    {dimensions.length ? (
-                      <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 rounded-md bg-muted/55 p-3">
-                        {dimensions.map((dimension) => (
-                          <div key={dimension.label}>
-                            <dt className="text-xs text-muted-foreground">
-                              {dimension.label}
-                            </dt>
-                            <dd className="mt-1 text-sm font-medium">
-                              {dimension.value === undefined
-                                ? null
-                                : formatLength(dimension.value, "mm")}
-                            </dd>
-                          </div>
-                        ))}
-                      </dl>
-                    ) : null}
+                          {expanded ? (
+                            <div className="border-t bg-muted/25 px-4 pb-4 pt-3">
+                              {dimensions.length ? (
+                                <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+                                  {dimensions.map((dimension) => (
+                                    <div key={dimension.label}>
+                                      <dt className="text-xs text-muted-foreground">
+                                        {dimension.label}
+                                      </dt>
+                                      <dd className="mt-1 text-sm font-medium">
+                                        {dimension.value === undefined
+                                          ? null
+                                          : formatLength(dimension.value, "mm")}
+                                      </dd>
+                                    </div>
+                                  ))}
+                                </dl>
+                              ) : null}
 
-                    <div className="mt-4 flex justify-end gap-2 border-t pt-3">
-                      <Button
-                        onClick={() => setMeasurementEditor(item)}
-                        size="default"
-                        variant="ghost"
-                      >
-                        <Pencil className="size-4" />
-                        {messages.common.edit}
-                      </Button>
-                      <Button
-                        onClick={() => setDeleteTarget(item)}
-                        size="default"
-                        variant="ghost"
-                      >
-                        <Trash2 className="size-4" />
-                        {messages.common.delete}
-                      </Button>
-                    </div>
-                  </article>
-                );
-              })}
+                              {item.notes ? (
+                                <div
+                                  className={cn(dimensions.length && "mt-3")}
+                                >
+                                  <p className="text-xs text-muted-foreground">
+                                    {messages.measurement.notes}
+                                  </p>
+                                  <p className="mt-1 text-sm leading-6">
+                                    {item.notes}
+                                  </p>
+                                </div>
+                              ) : null}
+
+                              <div className="mt-3 flex justify-end gap-2 border-t pt-3">
+                                <Button
+                                  onClick={() => setMeasurementEditor(item)}
+                                  variant="ghost"
+                                >
+                                  <Pencil className="size-4" />
+                                  {messages.common.edit}
+                                </Button>
+                                <Button
+                                  onClick={() => setDeleteTarget(item)}
+                                  variant="ghost"
+                                >
+                                  <Trash2 className="size-4" />
+                                  {messages.common.delete}
+                                </Button>
+                              </div>
+                            </div>
+                          ) : null}
+                        </article>
+                      );
+                    })}
+                  </div>
+                </section>
+              ))}
             </div>
             <div className="hidden min-w-0 max-w-full overflow-x-auto overscroll-x-contain md:block">
               <table className="w-full min-w-[760px] text-left text-sm">
@@ -1227,7 +1314,7 @@ function PetDetail({ petId, onBack }: { petId: string; onBack: () => void }) {
                           key={index}
                         >
                           {value === undefined
-                            ? messages.common.notRecorded
+                            ? messages.common.notRecordedShort
                             : formatLength(value, "mm")}
                         </td>
                       ))}

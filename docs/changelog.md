@@ -4,7 +4,7 @@
 
 ### Changed
 
-- Reworked measurement history into compact phone and small-tablet cards with 44px labeled actions and only recorded dimensions, while keeping a sticky action column in the contained larger-screen table.
+- Reworked measurement history into year-grouped expandable rows on phones and small tablets, with date, weight, change from the previous record, details on demand, and a contained larger-screen table using compact missing-value marks.
 - Prevented wide descendants from expanding the mobile document and triggering an inconsistent zoomed-out layout, while preserving normal browser zoom accessibility.
 - Replaced the brief false “Add your first pet” state during local database startup with an accessible loading panel.
 - Added a contributor, skill, and Playwright contract requiring every current and future screen to remain within mobile and small-tablet viewport widths without disabling browser zoom.

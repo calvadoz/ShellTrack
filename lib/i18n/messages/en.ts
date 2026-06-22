@@ -10,6 +10,7 @@ export const en: Messages = {
     delete: "Delete",
     optional: "Optional",
     notRecorded: "Not recorded",
+    notRecordedShort: "—",
   },
   metadata: {
     titleTemplate: "%s · ShellTrack",
@@ -99,6 +100,9 @@ export const en: Messages = {
     shellHeight: "Shell height",
     lengthUnit: "Length unit",
     notes: "Notes",
+    showDetails: "Show measurement details",
+    hideDetails: "Hide measurement details",
+    changeFromPrevious: "Change from previous record",
     deleteHeading: "Delete this measurement?",
     deleteBody: "This removes the measurement from the growth history.",
     deleteConfirm: "Delete measurement",
